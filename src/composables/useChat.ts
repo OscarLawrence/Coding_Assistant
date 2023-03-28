@@ -1,11 +1,23 @@
 export interface MessageI {
   role: "user" | "system" | "assistant";
+  content: Ref<string>;
+}
+
+interface JsonMessageI {
+  role: "user" | "system" | "assistant";
   content: string;
 }
 
 interface ChatI {
   created: number;
   messages: MessageI[];
+  prefix: string;
+  loading: boolean;
+}
+
+interface JsonChatI {
+  created: number;
+  messages: JsonMessageI[];
   prefix: string;
 }
 
@@ -26,48 +38,60 @@ const getLastId = () => {
   return Math.max(...chatKeys);
 };
 
+const cleanChat = (chat: ChatI): JsonChatI => {
+  return {
+    created: chat.created,
+    prefix: chat.prefix,
+    messages: chat.messages.map((m) => ({
+      role: m.role,
+      content: m.content.value,
+    })),
+  };
+};
+
 export default async (
   id: number | "new" = 0,
   prefix: string = DEFAULT_CHAT_PREFIX
 ) => {
-  let chat = reactive({
+  const chat: ChatI = reactive({
     created: Date.now(),
     messages: [
       {
         role: "system",
-        content: prefix,
+        content: ref(prefix),
       },
-    ] as MessageI[],
+    ],
     prefix,
     loading: ref(false),
   });
   const submit = async (content: string) => {
     chat.messages.push({
       role: "user",
-      content,
+      content: ref(content),
     });
     const { getAnswer } = useOpenAI();
     chat.loading = true;
-    const answer = await getAnswer(chat.messages);
+    const { answer, done } = await getAnswer(chat.messages);
     chat.loading = false;
 
-    chat.messages.push({ role: "assistant", content: answer.value });
-    const { set } = useIDB("codeHelper");
-
-    watch(answer, (val) => {
-      const newMessages = chat.messages;
-      newMessages[newMessages.length - 1].content = val;
-      chat.messages = newMessages;
-      chat.messages = chat.messages;
-      chats[id.toString()] = chat;
-      set("chats", chats);
+    chat.messages.push({ role: "assistant", content: answer });
+    watch(done, (d) => {
+      if (d) {
+        const { set } = useIDB("codeHelper");
+        chats[id.toString()] = cleanChat(chat);
+        set("chats", chats);
+      }
     });
   };
   if (typeof window === "undefined") return { chat: null, submit };
   const { get, set } = useIDB("codeHelper");
 
   if (!chatsLoaded) {
-    Object.assign(chats, JSON.parse(await get("chats")));
+    try {
+      Object.assign(chats, JSON.parse(await get("chats")));
+    } catch (error) {
+      console.info(error);
+    }
   }
   if (id === "new") {
     id = getLastId() + 1;

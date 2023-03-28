@@ -2,8 +2,15 @@
   <div class="p-2 chat-wrapper" v-if="chat">
     <Message v-for="message in chat.messages" :message="message" />
     <div v-show="chat.loading">Loading ...</div>
-    <form @submit.prevent="submit(newMessage)">
-      <textarea v-model="newMessage" placeholder="Type your message here" />
+    <form
+      @submit.prevent="submit(newMessage)"
+      class="flex flex-column align-center mt-10"
+    >
+      <textarea
+        style="width: 100%"
+        v-model="newMessage"
+        placeholder="Type your message here"
+      />
       <button type="submit">Send</button>
     </form>
   </div>
@@ -21,7 +28,6 @@ const newMessage = ref("");
 .chat-wrapper {
   display: flex;
   flex-direction: column;
-  align-items: center;
 
   textarea {
     width: 300px;

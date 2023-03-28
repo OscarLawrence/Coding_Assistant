@@ -1,20 +1,19 @@
 import { MessageI } from "@/composables/useChat";
 
-const OPENAI_API_KEY = "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";
-
 export default () => {
   const chatSettings = reactive({
     temperature: 0.5,
     max_tokens: 256,
     model: "gpt-3.5-turbo",
   });
-
   const getAnswer = async (messages: MessageI[]) => {
     const answer = ref("");
+    const done = ref(false);
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + OPENAI_API_KEY,
+        Authorization:
+          "Bearer " + "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",
       },
       method: "POST",
       body: JSON.stringify({
@@ -63,7 +62,7 @@ export default () => {
       }
     }, 10);
 
-    return answer;
+    return { answer, done };
   };
 
   return { getAnswer, chatSettings };
